@@ -1,8 +1,10 @@
-import requests
-import json
 import pdfplumber
 from dotenv import load_dotenv
 import os
+import time
+from Lib.openrouter_util import openrouter_request
+from Lib.mongodb_util import find_experience
+
 
 def extract_text_from_pdf(file_path):
     text = ""
@@ -14,38 +16,30 @@ def extract_text_from_pdf(file_path):
     return text.strip()
 
 
+
+
 pdf_path = "./KANACHAI NIYOMSILPCHAI.docx 20250429.pdf"  # 🔁 เปลี่ยนเป็นพาธจริง
 
 load_dotenv()
 
 openrouter_token=os.getenv("OPENROUTER_TOKEN")
+mongdb_uri = os.getenv("MONGODB_URI")
 bearer=f"Bearer {openrouter_token}" 
 
 print("################")
+for count in range(3):
+#while True:
+  resume_text = extract_text_from_pdf(pdf_path)
+  #print(resume_text)
 
-resume_text = extract_text_from_pdf(pdf_path)
-#print(resume_text)
 
+  result = openrouter_request(resume_text,bearer)
+  print("#########",flush=True)
+  print(result,flush=True)
 
-response = requests.post(
-  url="https://openrouter.ai/api/v1/chat/completions",
-  headers={
-    "Authorization": bearer,
-    "HTTP-Referer": "https://kanachain.vercel.app", # Optional. Site URL for rankings on openrouter.ai.
-    "X-Title": "nes", # Optional. Site title for rankings on openrouter.ai.
-  },
-  data=json.dumps({
-    "model": "meta-llama/llama-3.2-3b-instruct:free", # Optional
-    "messages": [
-      {
-        "role": "user",
-        "content": f"give me the JSON object from this information : {resume_text}"
-      }
-    ],
-    "max_tokens": 4000
-  })
-
-)
-print(response.status_code)
-print(response.json())
+  experiences = find_experience(mongdb_uri)
+  for experience in experiences :
+    print("#######EXP########")
+    print(experience, flush=True)
+  time.sleep(300)
 
